@@ -8,3 +8,13 @@ C:\Users\jen-s\Documents\MECH 4\MECH 423\4.FINAL PROJECT\EtchSketch_UI\EtchSketc
 C:\Users\jen-s\Documents\MECH 4\MECH 423\4.FINAL PROJECT\EtchSketch_UI\EtchSketch_UI\obj\Debug\EtchSketch_UI.csproj.CoreCompileInputs.cache
 C:\Users\jen-s\Documents\MECH 4\MECH 423\4.FINAL PROJECT\EtchSketch_UI\EtchSketch_UI\obj\Debug\EtchSketch_UI.exe
 C:\Users\jen-s\Documents\MECH 4\MECH 423\4.FINAL PROJECT\EtchSketch_UI\EtchSketch_UI\obj\Debug\EtchSketch_UI.pdb
+C:\Users\jen-s\Documents\MECH 4\MECH 423\4.FINAL PROJECT\EtchSketchUI\EtchSketch_UI\bin\Debug\EtchSketch_UI.exe.config
+C:\Users\jen-s\Documents\MECH 4\MECH 423\4.FINAL PROJECT\EtchSketchUI\EtchSketch_UI\bin\Debug\EtchSketch_UI.exe
+C:\Users\jen-s\Documents\MECH 4\MECH 423\4.FINAL PROJECT\EtchSketchUI\EtchSketch_UI\bin\Debug\EtchSketch_UI.pdb
+C:\Users\jen-s\Documents\MECH 4\MECH 423\4.FINAL PROJECT\EtchSketchUI\EtchSketch_UI\obj\Debug\EtchSketch_UI.csprojAssemblyReference.cache
+C:\Users\jen-s\Documents\MECH 4\MECH 423\4.FINAL PROJECT\EtchSketchUI\EtchSketch_UI\obj\Debug\EtchSketch_UI.Form1.resources
+C:\Users\jen-s\Documents\MECH 4\MECH 423\4.FINAL PROJECT\EtchSketchUI\EtchSketch_UI\obj\Debug\EtchSketch_UI.Properties.Resources.resources
+C:\Users\jen-s\Documents\MECH 4\MECH 423\4.FINAL PROJECT\EtchSketchUI\EtchSketch_UI\obj\Debug\EtchSketch_UI.csproj.GenerateResource.cache
+C:\Users\jen-s\Documents\MECH 4\MECH 423\4.FINAL PROJECT\EtchSketchUI\EtchSketch_UI\obj\Debug\EtchSketch_UI.csproj.CoreCompileInputs.cache
+C:\Users\jen-s\Documents\MECH 4\MECH 423\4.FINAL PROJECT\EtchSketchUI\EtchSketch_UI\obj\Debug\EtchSketch_UI.exe
+C:\Users\jen-s\Documents\MECH 4\MECH 423\4.FINAL PROJECT\EtchSketchUI\EtchSketch_UI\obj\Debug\EtchSketch_UI.pdb
