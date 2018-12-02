@@ -18,6 +18,8 @@ namespace EtchSketch_UI
     public partial class Form1 : Form
     {
         ConcurrentQueue<byte> cqueue = new ConcurrentQueue<byte>();
+        ConcurrentQueue<byte> drawQueue = new ConcurrentQueue<byte>();
+
         image24BitBMP currentImage;
         string imageLocation = @"C:\Users\jen-s\Documents\MECH 4\MECH 423\4.FINAL PROJECT\Sample_Images\grayscalePallet.bmp";
         enum printerState { printInProgress, printPaused, idle };
@@ -121,17 +123,46 @@ namespace EtchSketch_UI
             // Process image array
             processImageData(ref currentImage);
 
-            //Print out the image
-            int currentTile = 0;
-            foreach (byte currentByte in currentImage.commandBytes)
+            // Add command bytes to draw queue
+            int columnCount = 0;
+            foreach(byte tileByte in currentImage.commandBytes)
             {
-                richTextBox_debug.AppendText(currentByte.ToString() + " ");
-                if ((currentTile + 1) % (int)currentImage.imageWidthTiles == 0)
+
+                // Enqueue tile byte
+                switch (tileByte)
                 {
-                    richTextBox_debug.AppendText(Environment.NewLine);
+                    case 255:
+                        drawQueue.Enqueue(254);
+                        break;
+                    case 0:
+                        drawQueue.Enqueue(1);
+                        break;
+                    default:
+                        drawQueue.Enqueue(tileByte);
+                        break;
                 }
-                currentTile++;
+                columnCount++;
+
+                // Enqueue newline character '0' at end of row
+                if (columnCount == (int)currentImage.imageWidthPixels)
+                {
+                    columnCount = 0;
+                    drawQueue.Enqueue(0);
+                }
+
             }
+
+            ////Print out the image
+            //int currentTile = 0;
+            //foreach (byte currentByte in currentImage.commandBytes)
+            //{
+            //    richTextBox_debug.AppendText(currentByte.ToString() + " ");
+            //    if ((currentTile + 1) % (int)currentImage.imageWidthTiles == 0)
+            //    {
+            //        richTextBox_debug.AppendText(Environment.NewLine);
+            //    }
+            //    currentTile++;
+            //}
         }
 
         private void button_pauseResume_Click(object sender, EventArgs e)
@@ -184,6 +215,29 @@ namespace EtchSketch_UI
             textBox_filePath.Text = imageLocation;
 
 
+        }
+
+        private void timerDraw_Tick(object sender, EventArgs e)
+        {
+            if(currentPrinterState == printerState.printInProgress && drawQueue.Count() > 0)
+            {
+                drawQueue.TryDequeue(out dataByte);
+
+
+                if (serialPort1.IsOpen)
+                {
+                    serialPort1.Write(new byte[] { startByte, drawCommand, dataByte }, 0, 3);
+                }
+            }
+            else if(currentPrinterState == printerState.printInProgress && drawQueue.Count() == 0){
+                // Print is complete
+                currentPrinterState = printerState.idle;
+                button_startStop.Text = "Start Print";
+                if (serialPort1.IsOpen)
+                {
+                    serialPort1.Write(new byte[] { startByte, stopPrintCommand }, 0, 2);
+                }
+            }
         }
 
         private void comboBox_serialPort_Click(object sender, EventArgs e)
@@ -394,6 +448,7 @@ namespace EtchSketch_UI
             {
                 currentPrinterState = printerState.printInProgress;
                 button_startStop.Text = "Stop Print";
+                richTextBox_debug.Clear();
                 // Send start print command to Arduino
                 if (serialPort1.IsOpen)
                 {
