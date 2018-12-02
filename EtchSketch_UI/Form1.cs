@@ -54,14 +54,10 @@ namespace EtchSketch_UI
         private void processImageData(ref image24BitBMP image)
         {
             // Calculate tile height and width
-            heightInTiles = screenHeightMM / tileSizeMM;
-            widthInTiles = screenWidthMM / tileSizeMM;
-            int numTiles = heightInTiles * widthInTiles;
             int numPixels = (int)image.imageHeightPixels * (int)image.imageWidthPixels;
 
             int currentTile = 0;
             int currentGrayscalePixel = 0;
-            int currentImageByte = 0;
             int row = 0, column = 0;
 
 
@@ -140,6 +136,7 @@ namespace EtchSketch_UI
             image.imageHeightTiles = image.imageHeightPixels / image.pixelsPerMMVertical / (ulong)tileSizeMM;
 
             // Create command byte array
+            image.commandBytes = new byte[image.imageHeightTiles * image.imageWidthTiles];
             currentTile = 0;
             int currentTileValue = 0;
             for (row = 0; row < (int)image.imageHeightTiles; row++)
@@ -215,7 +212,6 @@ namespace EtchSketch_UI
             Array.Copy(imageArray, (int)image.imageDataOffset, image.imageData, 0, image.imageData.Length);
 
             image.grayScaleImageData = new byte[(int)image.imageWidthPixels * (int)image.imageHeightPixels];
-            image.commandBytes = new byte[(screenWidthMM * screenHeightMM)/ (tileSizeMM * tileSizeMM)];
 
         }
 
