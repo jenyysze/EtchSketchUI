@@ -48,7 +48,6 @@
             this.comboBox_serialPort = new System.Windows.Forms.ComboBox();
             this.button_Connect = new System.Windows.Forms.Button();
             this.textBox_Baud = new System.Windows.Forms.TextBox();
-            this.timerDraw = new System.Windows.Forms.Timer(this.components);
             ((System.ComponentModel.ISupportInitialize)(this.pictureBox1)).BeginInit();
             this.SuspendLayout();
             // 
@@ -211,12 +210,6 @@
             this.textBox_Baud.TabIndex = 16;
             this.textBox_Baud.Text = "9600";
             // 
-            // timerDraw
-            // 
-            this.timerDraw.Enabled = true;
-            this.timerDraw.Interval = 10;
-            this.timerDraw.Tick += new System.EventHandler(this.timerDraw_Tick);
-            // 
             // Form1
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(12F, 25F);
@@ -268,7 +261,6 @@
         private System.Windows.Forms.ComboBox comboBox_serialPort;
         private System.Windows.Forms.Button button_Connect;
         private System.Windows.Forms.TextBox textBox_Baud;
-        private System.Windows.Forms.Timer timerDraw;
     }
 }
 
