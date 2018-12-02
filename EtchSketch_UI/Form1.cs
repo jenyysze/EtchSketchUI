@@ -7,19 +7,36 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using System.Windows.Forms;
+using System.IO.Ports;
+using System.Diagnostics;
+using System.Collections.Concurrent;
 using System.IO;
-using System.Collections;
 
 namespace EtchSketch_UI
 {
 
     public partial class Form1 : Form
     {
+        ConcurrentQueue<byte> cqueue = new ConcurrentQueue<byte>();
+        image24BitBMP currentImage;
+        string imageLocation = @"C:\Users\jen-s\Documents\MECH 4\MECH 423\4.FINAL PROJECT\Sample_Images\grayscalePallet.bmp";
+        enum printerState { printInProgress, printPaused, idle };
+
+        printerState currentPrinterState = printerState.idle;
+
+        byte startByte = 255;
+        byte dataByte = 0;
+        byte startPrintCommand = 1;
+        byte stopPrintCommand = 0;
+        byte pausePrintCommand = 2;
+        byte resumePrintCommand = 3;
+        byte zeroMotorCommand = 4;
+        byte drawCommand = 5;
+
         int screenWidthMM = 120; // mm
         int screenHeightMM = 100; // mm
         int tileSizeMM = 4; // mm
-        int heightInTiles;
-        int widthInTiles;
+
 
         int fileSizeOffset = 2,
             imageDataOffset = 10,
@@ -31,7 +48,153 @@ namespace EtchSketch_UI
             imageSizeOffset = 34,
             pxPerMeterHorizontalOffset = 38,
             pxPerMeterVerticalOffset = 42;
-            
+
+        private void button_Connect_Click(object sender, EventArgs e)
+        {
+            int baud = 0;
+            if (serialPort1.IsOpen) // Close port operation
+            {
+                serialPort1.Close();
+                button_Connect.Text = "Connect";
+            }
+            else if (!serialPort1.IsOpen) // Open port operation
+            {
+                if (int.TryParse(textBox_Baud.Text, out baud) && comboBox_serialPort.Text != "")
+                {
+                    serialPort1.PortName = comboBox_serialPort.Text;
+                    serialPort1.BaudRate = baud;
+                    try
+                    {
+                        serialPort1.Open();
+                        button_Connect.Text = "Disconnect";
+                    }
+                    catch (Exception ex)
+                    {
+                        Debug.WriteLine("Error opening serial port: " + ex.Message);
+                    }
+
+                }
+            }
+        }
+
+        private void serialPort1_DataReceived(object sender, SerialDataReceivedEventArgs e)
+        {
+            if (serialPort1.IsOpen)
+            {
+
+                int numBytesRxBuffer = serialPort1.BytesToRead;
+                byte[] buffer = new byte[numBytesRxBuffer];
+                serialPort1.Read(buffer, 0, numBytesRxBuffer);
+                foreach (byte data in buffer)
+                {
+                    cqueue.Enqueue(data);
+                }
+                numBytesRxBuffer = serialPort1.BytesToRead;
+            }
+        }
+
+        private void timer1_Tick(object sender, EventArgs e)
+        {
+            byte queueData = 0;
+            while(cqueue.Count > 0)
+            {
+                cqueue.TryDequeue(out queueData);
+                richTextBox_debug.AppendText( queueData + " ");
+
+            }
+
+        }
+
+        private void button_Upload_Click(object sender, EventArgs e)
+        {
+            // Convert image to byte array
+            Image imageIn = Image.FromFile(imageLocation);
+            byte[] byteArray;
+            MemoryStream ms = new MemoryStream();
+            imageIn.Save(ms, System.Drawing.Imaging.ImageFormat.Bmp);
+            byteArray = ms.ToArray();
+            currentImage = new image24BitBMP();
+
+            // Parse image
+            parseImageArray(byteArray, ref currentImage);
+
+            // Process image array
+            processImageData(ref currentImage);
+
+            //Print out the image
+            int currentTile = 0;
+            foreach (byte currentByte in currentImage.commandBytes)
+            {
+                richTextBox_debug.AppendText(currentByte.ToString() + " ");
+                if ((currentTile + 1) % (int)currentImage.imageWidthTiles == 0)
+                {
+                    richTextBox_debug.AppendText(Environment.NewLine);
+                }
+                currentTile++;
+            }
+        }
+
+        private void button_pauseResume_Click(object sender, EventArgs e)
+        {
+            if (currentPrinterState == printerState.printInProgress)
+            {
+                currentPrinterState = printerState.printPaused;
+                button_pauseResume.Text = "Resume Print";
+                // Send start print command to Arduino
+                if (serialPort1.IsOpen)
+                {
+                    dataByte = 0;
+                    serialPort1.Write(new byte[2] { startByte, pausePrintCommand }, 0, 2);
+                }
+            }
+            else if (currentPrinterState == printerState.printPaused)
+            {
+                currentPrinterState = printerState.printInProgress;
+                button_pauseResume.Text = "Pause Print";
+                // Send stop print command to Arduino
+                if (serialPort1.IsOpen)
+                {
+                    dataByte = 0;
+                    serialPort1.Write(new byte[2] { startByte, resumePrintCommand }, 0, 2);
+                }
+            }
+        }
+
+        private void button_zeroMotor_Click(object sender, EventArgs e)
+        {
+            if (serialPort1.IsOpen)
+            {
+                serialPort1.Write(new byte[2] { startByte, zeroMotorCommand }, 0, 2);
+            }
+        }
+
+        private void Form1_FormClosing(object sender, FormClosingEventArgs e)
+        {
+            serialPort1.Close();
+        }
+
+        private void button_browse_Click(object sender, EventArgs e)
+        {
+            openFileDialog1.ShowDialog();
+        }
+
+        private void openFileDialog1_FileOk(object sender, CancelEventArgs e)
+        {
+            imageLocation = openFileDialog1.FileName;
+            textBox_filePath.Text = imageLocation;
+
+
+        }
+
+        private void comboBox_serialPort_Click(object sender, EventArgs e)
+        {
+            comboBox_serialPort.Items.Clear();
+            string[] ports = SerialPort.GetPortNames();
+            foreach (string port in ports)
+            {
+                comboBox_serialPort.Items.Add(port);
+            }
+        }
 
         class image24BitBMP {
             public ulong fileSize;
@@ -227,44 +390,31 @@ namespace EtchSketch_UI
 
         private void button_startStop_Click(object sender, EventArgs e)
         {
-            // Convert image to byte array
-            Image imageIn = Image.FromFile(@"C:\Users\jen-s\Documents\MECH 4\MECH 423\4.FINAL PROJECT\Sample_Images\apple.bmp");
-            byte[] byteArray;
-            MemoryStream ms = new MemoryStream();
-            imageIn.Save(ms, System.Drawing.Imaging.ImageFormat.Bmp);
-            byteArray =  ms.ToArray();
-            image24BitBMP currentImage = new image24BitBMP();
-
-            // Parse image
-            parseImageArray(byteArray, ref currentImage);
-
-            // Process image array
-            processImageData(ref currentImage);
-
-            // Print out the image
-            int currentTile = 0;
-            foreach (byte commandByte in currentImage.commandBytes){
-                richTextBox_debug.AppendText(commandByte.ToString() + " ");
-                if ((currentTile + 1) % (int)currentImage.imageWidthTiles == 0)
+            if(currentPrinterState == printerState.idle)
+            {
+                currentPrinterState = printerState.printInProgress;
+                button_startStop.Text = "Stop Print";
+                // Send start print command to Arduino
+                if (serialPort1.IsOpen)
                 {
-                    richTextBox_debug.AppendText(Environment.NewLine);
+                    dataByte = 0;
+                    serialPort1.Write(new byte[3] { startByte, startPrintCommand, dataByte }, 0, 3);
                 }
-                currentTile++;
             }
-            //int grayscaleByteCount = 0;
-            //foreach (byte grayscaleByte in currentImage.grayScaleImageDataCorrectSize)
-            //{
-            //    richTextBox_debug.AppendText(grayscaleByte.ToString() + " ");
-            //    if ((grayscaleByteCount + 1) % (int)currentImage.imageWidthPixels == 0)
-            //    {
-            //        richTextBox_debug.AppendText(Environment.NewLine);
-            //    }
-            //    grayscaleByteCount++;
-            //}
+            else if(currentPrinterState == printerState.printInProgress || currentPrinterState == printerState.printPaused)
+            {
+                currentPrinterState = printerState.idle;
+                button_startStop.Text = "Start Print";
+                button_pauseResume.Text = "Pause Print";
+                // Send stop print command to Arduino
+                if (serialPort1.IsOpen)
+                {
+                    dataByte = 0;
+                    serialPort1.Write(new byte[2] { startByte, stopPrintCommand }, 0, 2);
+                }
+            }
 
-
-            currentTile = 0;
-
+            
         }
     }
 }
