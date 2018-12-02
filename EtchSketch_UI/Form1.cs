@@ -22,7 +22,7 @@ namespace EtchSketch_UI
 
         image24BitBMP currentImage;
         string imageLocation = @"C:\Users\jen-s\Documents\MECH 4\MECH 423\4.FINAL PROJECT\Sample_Images\grayscalePallet.bmp";
-        enum printerState { printInProgress, printPaused, idle, sendDrawCommand };
+        enum printerState { printInProgress, printPaused, idle };
 
         printerState currentPrinterState = printerState.idle;
 
@@ -56,10 +56,6 @@ namespace EtchSketch_UI
             int baud = 0;
             if (serialPort1.IsOpen) // Close port operation
             {
-                if (currentPrinterState == printerState.printInProgress)
-                {
-                    serialPort1.Write(new byte[] { startByte, stopPrintCommand }, 0, 2);
-                }
                 serialPort1.Close();
                 button_Connect.Text = "Connect";
             }
@@ -102,18 +98,11 @@ namespace EtchSketch_UI
         private void timer1_Tick(object sender, EventArgs e)
         {
             byte queueData = 0;
-            if(cqueue.Count > 0)
+            while(cqueue.Count > 0)
             {
                 cqueue.TryDequeue(out queueData);
                 richTextBox_debug.AppendText( queueData + " ");
-                if(queueData == startByte)
-                {
-                    cqueue.TryDequeue(out queueData);
-                    if(queueData == 5)
-                    {
-                        currentPrinterState = printerState.sendDrawCommand;
-                    }
-                }
+
             }
 
         }
@@ -212,16 +201,7 @@ namespace EtchSketch_UI
 
         private void Form1_FormClosing(object sender, FormClosingEventArgs e)
         {
-            if (serialPort1.IsOpen)
-            {
-                if (currentPrinterState == printerState.printInProgress)
-                {
-                    serialPort1.Write(new byte[] { startByte, stopPrintCommand }, 0, 2);
-                }
-                serialPort1.Close();
-
-            }
- 
+            serialPort1.Close();
         }
 
         private void button_browse_Click(object sender, EventArgs e)
@@ -239,10 +219,11 @@ namespace EtchSketch_UI
 
         private void timerDraw_Tick(object sender, EventArgs e)
         {
-            if(currentPrinterState == printerState.sendDrawCommand && drawQueue.Count() > 0)
+            if(currentPrinterState == printerState.printInProgress && drawQueue.Count() > 0)
             {
-                currentPrinterState = printerState.printInProgress;
                 drawQueue.TryDequeue(out dataByte);
+
+
                 if (serialPort1.IsOpen)
                 {
                     serialPort1.Write(new byte[] { startByte, drawCommand, dataByte }, 0, 3);
@@ -465,16 +446,9 @@ namespace EtchSketch_UI
         {
             if(currentPrinterState == printerState.idle)
             {
-                while (!cqueue.IsEmpty)
-                {
-                    byte junk;
-                    cqueue.TryDequeue(out junk);
-                }
-
                 currentPrinterState = printerState.printInProgress;
                 button_startStop.Text = "Stop Print";
                 richTextBox_debug.Clear();
-
                 // Send start print command to Arduino
                 if (serialPort1.IsOpen)
                 {
