@@ -103,7 +103,7 @@
             // 
             // button_startStop
             // 
-            this.button_startStop.Location = new System.Drawing.Point(814, 337);
+            this.button_startStop.Location = new System.Drawing.Point(762, 335);
             this.button_startStop.Name = "button_startStop";
             this.button_startStop.Size = new System.Drawing.Size(306, 112);
             this.button_startStop.TabIndex = 5;
@@ -113,7 +113,7 @@
             // 
             // button_pauseResume
             // 
-            this.button_pauseResume.Location = new System.Drawing.Point(814, 479);
+            this.button_pauseResume.Location = new System.Drawing.Point(762, 477);
             this.button_pauseResume.Name = "button_pauseResume";
             this.button_pauseResume.Size = new System.Drawing.Size(306, 110);
             this.button_pauseResume.TabIndex = 6;
@@ -124,7 +124,7 @@
             // label_Resolution
             // 
             this.label_Resolution.AutoSize = true;
-            this.label_Resolution.Location = new System.Drawing.Point(863, 233);
+            this.label_Resolution.Location = new System.Drawing.Point(55, 695);
             this.label_Resolution.Name = "label_Resolution";
             this.label_Resolution.Size = new System.Drawing.Size(164, 25);
             this.label_Resolution.TabIndex = 8;
@@ -133,15 +133,15 @@
             // comboBox_Resolution
             // 
             this.comboBox_Resolution.FormattingEnabled = true;
-            this.comboBox_Resolution.Location = new System.Drawing.Point(866, 261);
+            this.comboBox_Resolution.Location = new System.Drawing.Point(225, 692);
             this.comboBox_Resolution.Name = "comboBox_Resolution";
-            this.comboBox_Resolution.Size = new System.Drawing.Size(215, 33);
+            this.comboBox_Resolution.Size = new System.Drawing.Size(224, 33);
             this.comboBox_Resolution.TabIndex = 9;
             this.comboBox_Resolution.Text = "Low";
             // 
             // textBox_Status
             // 
-            this.textBox_Status.Location = new System.Drawing.Point(814, 692);
+            this.textBox_Status.Location = new System.Drawing.Point(762, 152);
             this.textBox_Status.Name = "textBox_Status";
             this.textBox_Status.Size = new System.Drawing.Size(306, 31);
             this.textBox_Status.TabIndex = 10;
@@ -149,7 +149,7 @@
             // label_Status
             // 
             this.label_Status.AutoSize = true;
-            this.label_Status.Location = new System.Drawing.Point(809, 651);
+            this.label_Status.Location = new System.Drawing.Point(875, 124);
             this.label_Status.Name = "label_Status";
             this.label_Status.Size = new System.Drawing.Size(73, 25);
             this.label_Status.TabIndex = 11;
@@ -157,9 +157,9 @@
             // 
             // button_zeroMotor
             // 
-            this.button_zeroMotor.Location = new System.Drawing.Point(807, 133);
+            this.button_zeroMotor.Location = new System.Drawing.Point(762, 240);
             this.button_zeroMotor.Name = "button_zeroMotor";
-            this.button_zeroMotor.Size = new System.Drawing.Size(313, 51);
+            this.button_zeroMotor.Size = new System.Drawing.Size(306, 51);
             this.button_zeroMotor.TabIndex = 12;
             this.button_zeroMotor.Text = "Zero Motor Position";
             this.button_zeroMotor.UseVisualStyleBackColor = true;

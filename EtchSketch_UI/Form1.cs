@@ -35,10 +35,12 @@ namespace EtchSketch_UI
         byte zeroMotorCommand = 4;
         byte drawCommand = 5;
 
-        int screenWidthMM = 120; // mm
-        int screenHeightMM = 100; // mm
+        int screenWidthMM = 144; // mm
+        int screenHeightMM = 96; // mm
+        int lowResTileSizeMM = 4;
+        int mediumResTileSizeMM = 3;
+        int highResTileSizeMM = 2;
         int tileSizeMM = 4; // mm
-
 
         int fileSizeOffset = 2,
             imageDataOffset = 10,
@@ -139,7 +141,22 @@ namespace EtchSketch_UI
             // Display image
             pictureBox1.ImageLocation = imageLocation;
             pictureBox1.SizeMode = PictureBoxSizeMode.Zoom;
-            
+
+            // Determine resolution of print
+            if (comboBox_Resolution.Text == "Low")
+            {
+                tileSizeMM = lowResTileSizeMM;
+            }
+            else if (comboBox_Resolution.Text == "Medium")
+            {
+                tileSizeMM = mediumResTileSizeMM;
+
+            }
+            else if (comboBox_Resolution.Text == "High")
+            {
+                tileSizeMM = highResTileSizeMM;                
+            }
+
             // Convert image to byte array
             Image imageIn = Image.FromFile(imageLocation);
             byte[] byteArray;
