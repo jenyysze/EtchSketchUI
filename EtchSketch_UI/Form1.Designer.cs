@@ -156,9 +156,9 @@
             // 
             // richTextBox_debug
             // 
-            this.richTextBox_debug.Location = new System.Drawing.Point(1260, 205);
+            this.richTextBox_debug.Location = new System.Drawing.Point(42, 787);
             this.richTextBox_debug.Name = "richTextBox_debug";
-            this.richTextBox_debug.Size = new System.Drawing.Size(323, 344);
+            this.richTextBox_debug.Size = new System.Drawing.Size(2670, 937);
             this.richTextBox_debug.TabIndex = 13;
             this.richTextBox_debug.Text = "";
             // 
@@ -166,7 +166,7 @@
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(12F, 25F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
-            this.ClientSize = new System.Drawing.Size(1772, 784);
+            this.ClientSize = new System.Drawing.Size(2740, 1783);
             this.Controls.Add(this.richTextBox_debug);
             this.Controls.Add(this.button1);
             this.Controls.Add(this.label_Status);

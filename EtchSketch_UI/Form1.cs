@@ -15,9 +15,9 @@ namespace EtchSketch_UI
 
     public partial class Form1 : Form
     {
-        int screenWidthMM = 150; // mm
+        int screenWidthMM = 120; // mm
         int screenHeightMM = 100; // mm
-        int tileSizeMM = 10; // mm
+        int tileSizeMM = 4; // mm
         int heightInTiles;
         int widthInTiles;
 
@@ -38,6 +38,8 @@ namespace EtchSketch_UI
             public ulong imageDataOffset;
             public ulong imageWidthPixels;
             public ulong imageHeightPixels;
+            public ulong imageWidthTiles;
+            public ulong imageHeightTiles;
             public ulong numColorPlanes;
             public ulong bitsPerPixel;
             public ulong compressionType;
@@ -46,7 +48,7 @@ namespace EtchSketch_UI
             public byte[] imageData;
             public byte[] commandBytes;
             public byte[] grayScaleImageData;
-            public byte[] grayScaleImageDataTruncated;
+            public byte[] grayScaleImageDataCorrectSize;
         }
 
         private void processImageData(ref image24BitBMP image)
@@ -64,8 +66,11 @@ namespace EtchSketch_UI
 
 
             // Convert image to grayscale
-            int padding = 0;
-            padding = (int)image.imageWidthPixels % 4;
+            int padding = ((int)image.imageWidthPixels * 3) % 4;
+            if( padding != 0)
+            {
+                padding = 4 - padding;
+            }
 
             currentGrayscalePixel = 0;
 
@@ -73,7 +78,7 @@ namespace EtchSketch_UI
             {
                 for (column = 0; column < (int)image.imageWidthPixels; column++)
                 {
-                    int i = row * ((int)image.imageWidthPixels) * 3  + padding + column * 3;
+                    int i = row * (((int)image.imageWidthPixels) * 3  + padding) + column * 3;
                     image.grayScaleImageData[currentGrayscalePixel] = (byte) (((int)image.imageData[i] + (int)image.imageData[i + 1] + (int)image.imageData[i + 2]) / 3 );
                     currentGrayscalePixel++;
                 }
@@ -84,24 +89,21 @@ namespace EtchSketch_UI
             // Image height exceeds screen limits
             if ((double)image.imageHeightPixels / image.pixelsPerMMVertical > screenHeightMM)
             {
-                image.pixelsPerMMVertical = (ulong)Math.Ceiling((double)image.imageHeightPixels / screenHeightMM);
+                image.pixelsPerMMVertical = (ulong)((double)image.imageHeightPixels / screenHeightMM);
                 image.pixelsPerMMHorizontal = image.pixelsPerMMVertical;
             }
 
             // Image width exceeds screen limits
             if ((double)image.imageWidthPixels / image.pixelsPerMMHorizontal > screenWidthMM)
             {
-                image.pixelsPerMMHorizontal = (ulong)Math.Ceiling((double)image.imageWidthPixels / screenWidthMM);
+                image.pixelsPerMMHorizontal = (ulong)((double)image.imageWidthPixels / screenWidthMM);
                 image.pixelsPerMMVertical = image.pixelsPerMMHorizontal;
             }
 
-            // Calculate pixels per tile
-            int tileWidthPx = (int)image.pixelsPerMMHorizontal * tileSizeMM;
-            int tileHeightPx = (int)image.pixelsPerMMVertical * tileSizeMM;
 
             // Crop image to eliminate stray pixels
-            int numStrayHorzPixels = (int)image.imageWidthPixels % (int)image.pixelsPerMMHorizontal;
-            int numStrayVertPixels = (int)image.imageHeightPixels % (int)image.pixelsPerMMVertical;
+            int numStrayHorzPixels = (int)image.imageWidthPixels % ((int)image.pixelsPerMMHorizontal * tileSizeMM);
+            int numStrayVertPixels = (int)image.imageHeightPixels % ((int)image.pixelsPerMMVertical * tileSizeMM);
             if (numStrayHorzPixels > 0 || numStrayVertPixels > 0)
             {
                 currentGrayscalePixel = 0;
@@ -110,38 +112,60 @@ namespace EtchSketch_UI
                 image.imageWidthPixels -= (ulong)numStrayHorzPixels;
                 numPixels = (int)image.imageHeightPixels * (int)image.imageWidthPixels;
 
-                image.grayScaleImageDataTruncated = new byte[image.imageWidthPixels * image.imageHeightPixels];
+                image.grayScaleImageDataCorrectSize = new byte[image.imageWidthPixels * image.imageHeightPixels];
 
                 for(row = 0; row < (int)image.imageHeightPixels; row++)
                 {
                     for (column = 0; column < (int)image.imageWidthPixels; column++)
                     {
                         int i = row * ((int)image.imageWidthPixels + numStrayHorzPixels) + column;
-                        image.grayScaleImageDataTruncated[currentGrayscalePixel] = image.grayScaleImageData[i];
+                        image.grayScaleImageDataCorrectSize[currentGrayscalePixel] = image.grayScaleImageData[i];
                         currentGrayscalePixel++;
                     }
-                }
+                }             
             }
-            
+            else
+            {
+                image.grayScaleImageDataCorrectSize = new byte[image.grayScaleImageData.Length];
+                Array.Copy(image.grayScaleImageData, image.grayScaleImageDataCorrectSize, image.grayScaleImageData.Length);
+            }
+
+
+            // Calculate pixels per tile
+            int tileWidthPx = (int)image.pixelsPerMMHorizontal * tileSizeMM;
+            int tileHeightPx = (int)image.pixelsPerMMVertical * tileSizeMM;
+
+            // Calculate image size in tiles
+            image.imageWidthTiles = image.imageWidthPixels / image.pixelsPerMMHorizontal / (ulong)tileSizeMM;
+            image.imageHeightTiles = image.imageHeightPixels / image.pixelsPerMMVertical / (ulong)tileSizeMM;
+
             // Create command byte array
             currentTile = 0;
-            for (row = 0; row < heightInTiles; row++)
+            int currentTileValue = 0;
+            for (row = 0; row < (int)image.imageHeightTiles; row++)
             {
-                for(column = 0; column < widthInTiles; column++)
+                for(column = 0; column < (int)image.imageWidthTiles; column++)
                 {
+                    // Calculate top left tile number
+                    int i = (row) * (int)image.imageWidthPixels * tileHeightPx + column * tileWidthPx;
+
                     // Sum pixels in each tile
-                    currentGrayscalePixel = (currentTile + 1) * tileWidthPx * tileHeightPx;
                     int pixelRow = 0, pixelColumn = 0;
                     for(pixelRow = 0; pixelRow < tileHeightPx; pixelRow++)
                     {
                         for(pixelColumn = 0; pixelColumn < tileWidthPx; pixelColumn++)
                         {
-
+                            currentTileValue += image.grayScaleImageDataCorrectSize[i + pixelColumn];
                         }
                     }
+
+                    currentTileValue /= (tileWidthPx * tileHeightPx);
+                    image.commandBytes[currentTile] = (byte)currentTileValue;
                     currentTile++;
+                    currentTileValue = 0;
                 }
             }
+            currentTileValue = 0;
 
         }
 
@@ -208,7 +232,7 @@ namespace EtchSketch_UI
         private void button_startStop_Click(object sender, EventArgs e)
         {
             // Convert image to byte array
-            Image imageIn = Image.FromFile(@"C:\Users\jen-s\Documents\MECH 4\MECH 423\4.FINAL PROJECT\Sample_Images\blackWhiteRectangle.bmp");
+            Image imageIn = Image.FromFile(@"C:\Users\jen-s\Documents\MECH 4\MECH 423\4.FINAL PROJECT\Sample_Images\apple.bmp");
             byte[] byteArray;
             MemoryStream ms = new MemoryStream();
             imageIn.Save(ms, System.Drawing.Imaging.ImageFormat.Bmp);
@@ -221,9 +245,29 @@ namespace EtchSketch_UI
             // Process image array
             processImageData(ref currentImage);
 
-            foreach (byte pixel in byteArray){
-                richTextBox_debug.AppendText(pixel.ToString() + ", ");
+            // Print out the image
+            int currentTile = 0;
+            foreach (byte commandByte in currentImage.commandBytes){
+                richTextBox_debug.AppendText(commandByte.ToString() + " ");
+                if ((currentTile + 1) % (int)currentImage.imageWidthTiles == 0)
+                {
+                    richTextBox_debug.AppendText(Environment.NewLine);
+                }
+                currentTile++;
             }
+            //int grayscaleByteCount = 0;
+            //foreach (byte grayscaleByte in currentImage.grayScaleImageDataCorrectSize)
+            //{
+            //    richTextBox_debug.AppendText(grayscaleByte.ToString() + " ");
+            //    if ((grayscaleByteCount + 1) % (int)currentImage.imageWidthPixels == 0)
+            //    {
+            //        richTextBox_debug.AppendText(Environment.NewLine);
+            //    }
+            //    grayscaleByteCount++;
+            //}
+
+
+            currentTile = 0;
 
         }
     }
