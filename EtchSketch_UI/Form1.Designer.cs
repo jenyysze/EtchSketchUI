@@ -38,8 +38,8 @@
             this.button_startStop = new System.Windows.Forms.Button();
             this.button_pauseResume = new System.Windows.Forms.Button();
             this.label_Resolution = new System.Windows.Forms.Label();
-            this.comboBox1 = new System.Windows.Forms.ComboBox();
-            this.textBox1 = new System.Windows.Forms.TextBox();
+            this.comboBox_Resolution = new System.Windows.Forms.ComboBox();
+            this.textBox_Status = new System.Windows.Forms.TextBox();
             this.label_Status = new System.Windows.Forms.Label();
             this.button_zeroMotor = new System.Windows.Forms.Button();
             this.richTextBox_debug = new System.Windows.Forms.RichTextBox();
@@ -73,7 +73,6 @@
             this.label1.Size = new System.Drawing.Size(161, 25);
             this.label1.TabIndex = 1;
             this.label1.Text = "Picture Preview";
-            this.label1.Click += new System.EventHandler(this.label1_Click);
             // 
             // button_browse
             // 
@@ -131,21 +130,21 @@
             this.label_Resolution.TabIndex = 8;
             this.label_Resolution.Text = "Print Resolution";
             // 
-            // comboBox1
+            // comboBox_Resolution
             // 
-            this.comboBox1.FormattingEnabled = true;
-            this.comboBox1.Location = new System.Drawing.Point(866, 261);
-            this.comboBox1.Name = "comboBox1";
-            this.comboBox1.Size = new System.Drawing.Size(215, 33);
-            this.comboBox1.TabIndex = 9;
-            this.comboBox1.Text = "Low";
+            this.comboBox_Resolution.FormattingEnabled = true;
+            this.comboBox_Resolution.Location = new System.Drawing.Point(866, 261);
+            this.comboBox_Resolution.Name = "comboBox_Resolution";
+            this.comboBox_Resolution.Size = new System.Drawing.Size(215, 33);
+            this.comboBox_Resolution.TabIndex = 9;
+            this.comboBox_Resolution.Text = "Low";
             // 
-            // textBox1
+            // textBox_Status
             // 
-            this.textBox1.Location = new System.Drawing.Point(814, 692);
-            this.textBox1.Name = "textBox1";
-            this.textBox1.Size = new System.Drawing.Size(306, 31);
-            this.textBox1.TabIndex = 10;
+            this.textBox_Status.Location = new System.Drawing.Point(814, 692);
+            this.textBox_Status.Name = "textBox_Status";
+            this.textBox_Status.Size = new System.Drawing.Size(306, 31);
+            this.textBox_Status.TabIndex = 10;
             // 
             // label_Status
             // 
@@ -228,8 +227,8 @@
             this.Controls.Add(this.richTextBox_debug);
             this.Controls.Add(this.button_zeroMotor);
             this.Controls.Add(this.label_Status);
-            this.Controls.Add(this.textBox1);
-            this.Controls.Add(this.comboBox1);
+            this.Controls.Add(this.textBox_Status);
+            this.Controls.Add(this.comboBox_Resolution);
             this.Controls.Add(this.label_Resolution);
             this.Controls.Add(this.button_pauseResume);
             this.Controls.Add(this.button_startStop);
@@ -241,6 +240,7 @@
             this.Name = "Form1";
             this.Text = "Form1";
             this.FormClosing += new System.Windows.Forms.FormClosingEventHandler(this.Form1_FormClosing);
+            this.Load += new System.EventHandler(this.Form1_Load);
             ((System.ComponentModel.ISupportInitialize)(this.pictureBox1)).EndInit();
             this.ResumeLayout(false);
             this.PerformLayout();
@@ -258,8 +258,8 @@
         private System.Windows.Forms.Button button_startStop;
         private System.Windows.Forms.Button button_pauseResume;
         private System.Windows.Forms.Label label_Resolution;
-        private System.Windows.Forms.ComboBox comboBox1;
-        private System.Windows.Forms.TextBox textBox1;
+        private System.Windows.Forms.ComboBox comboBox_Resolution;
+        private System.Windows.Forms.TextBox textBox_Status;
         private System.Windows.Forms.Label label_Status;
         private System.Windows.Forms.Button button_zeroMotor;
         private System.Windows.Forms.RichTextBox richTextBox_debug;

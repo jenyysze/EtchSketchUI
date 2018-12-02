@@ -22,7 +22,7 @@ namespace EtchSketch_UI
 
         image24BitBMP currentImage;
         string imageLocation = @"C:\Users\jen-s\Documents\MECH 4\MECH 423\4.FINAL PROJECT\Sample_Images\grayscalePallet.bmp";
-        enum printerState { printInProgress, printPaused, idle };
+        enum printerState { printInProgress, printPaused, idle, sendDrawingBytes };
 
         printerState currentPrinterState = printerState.idle;
 
@@ -83,7 +83,6 @@ namespace EtchSketch_UI
         {
             if (serialPort1.IsOpen)
             {
-
                 int numBytesRxBuffer = serialPort1.BytesToRead;
                 byte[] buffer = new byte[numBytesRxBuffer];
                 serialPort1.Read(buffer, 0, numBytesRxBuffer);
@@ -97,24 +96,58 @@ namespace EtchSketch_UI
 
         private void timer1_Tick(object sender, EventArgs e)
         {
+            // Dequeue and print incoming messages from Arduino 
             byte queueData = 0;
             while(cqueue.Count > 0)
             {
                 cqueue.TryDequeue(out queueData);
                 richTextBox_debug.AppendText( queueData + " ");
 
+                // Incoming command from Arduino
+                if(queueData == 255 && currentPrinterState == printerState.printInProgress)
+                {
+                    // Print has been complete, change to idle state
+                    cqueue.TryDequeue(out queueData);
+                    if(queueData == 5)
+                    {
+                        currentPrinterState = printerState.idle;
+                        button_startStop.Text = "Start Print";
+                        button_pauseResume.Text = "Pause Print";
+
+                        textBox_Status.Text = "Print Complete";
+                    }
+                }
+
             }
 
         }
 
+        private static double getScalingFactor(Size image, Size boundingBox)
+        {
+            double scale = 0;
+            if (image.Width != 0)
+                scale = (double)boundingBox.Width / (double)image.Width;
+
+            return scale;
+        }
+
         private void button_Upload_Click(object sender, EventArgs e)
         {
+            // Provide user feedback
+            textBox_Status.Text = "Processing image";
+
+            // Display image
+            pictureBox1.ImageLocation = imageLocation;
+            pictureBox1.SizeMode = PictureBoxSizeMode.Zoom;
+            
             // Convert image to byte array
             Image imageIn = Image.FromFile(imageLocation);
             byte[] byteArray;
             MemoryStream ms = new MemoryStream();
             imageIn.Save(ms, System.Drawing.Imaging.ImageFormat.Bmp);
             byteArray = ms.ToArray();
+
+            // Create image class
             currentImage = new image24BitBMP();
 
             // Parse image
@@ -144,13 +177,17 @@ namespace EtchSketch_UI
                 columnCount++;
 
                 // Enqueue newline character '0' at end of row
-                if (columnCount == (int)currentImage.imageWidthPixels)
+                if (columnCount == (int)currentImage.imageWidthTiles)
                 {
                     columnCount = 0;
                     drawQueue.Enqueue(0);
                 }
 
             }
+
+            
+            textBox_Status.Text = "Image processing complete";
+
 
             ////Print out the image
             //int currentTile = 0;
@@ -167,9 +204,11 @@ namespace EtchSketch_UI
 
         private void button_pauseResume_Click(object sender, EventArgs e)
         {
+            // Pause the print. Can only pause print once all drawing bytes have been sent to the Arduino.
             if (currentPrinterState == printerState.printInProgress)
             {
                 currentPrinterState = printerState.printPaused;
+                textBox_Status.Text = "Print Paused";
                 button_pauseResume.Text = "Resume Print";
                 // Send start print command to Arduino
                 if (serialPort1.IsOpen)
@@ -178,8 +217,10 @@ namespace EtchSketch_UI
                     serialPort1.Write(new byte[2] { startByte, pausePrintCommand }, 0, 2);
                 }
             }
+            // Resume the print
             else if (currentPrinterState == printerState.printPaused)
             {
+                textBox_Status.Text = "Printing";
                 currentPrinterState = printerState.printInProgress;
                 button_pauseResume.Text = "Pause Print";
                 // Send stop print command to Arduino
@@ -213,29 +254,32 @@ namespace EtchSketch_UI
         {
             imageLocation = openFileDialog1.FileName;
             textBox_filePath.Text = imageLocation;
+            
+        }
 
-
+        private void Form1_Load(object sender, EventArgs e)
+        {
+            comboBox_Resolution.Items.Add("Low");
+            comboBox_Resolution.Items.Add("Medium");
+            comboBox_Resolution.Items.Add("High");
+            comboBox_Resolution.Text = "Low";
         }
 
         private void timerDraw_Tick(object sender, EventArgs e)
         {
-            if(currentPrinterState == printerState.printInProgress && drawQueue.Count() > 0)
+            // Send tile bytes to the Arduino
+            if(currentPrinterState == printerState.sendDrawingBytes)
             {
                 drawQueue.TryDequeue(out dataByte);
-
-
                 if (serialPort1.IsOpen)
                 {
                     serialPort1.Write(new byte[] { startByte, drawCommand, dataByte }, 0, 3);
                 }
-            }
-            else if(currentPrinterState == printerState.printInProgress && drawQueue.Count() == 0){
-                // Print is complete
-                currentPrinterState = printerState.idle;
-                button_startStop.Text = "Start Print";
-                if (serialPort1.IsOpen)
+                // Drawing byte transfer is complete
+                if (drawQueue.IsEmpty)
                 {
-                    serialPort1.Write(new byte[] { startByte, stopPrintCommand }, 0, 2);
+                    currentPrinterState = printerState.printInProgress;
+                    textBox_Status.Text = "Printing";
                 }
             }
         }
@@ -250,6 +294,7 @@ namespace EtchSketch_UI
             }
         }
 
+        // Image class
         class image24BitBMP {
             public ulong fileSize;
             public ulong imageDataOffset;
@@ -270,23 +315,23 @@ namespace EtchSketch_UI
 
         private void processImageData(ref image24BitBMP image)
         {
-            // Calculate tile height and width
-            int numPixels = (int)image.imageHeightPixels * (int)image.imageWidthPixels;
-
+            // Declare useful variables
+            int numPixels = (int)image.imageHeightPixels * (int)image.imageWidthPixels;        
             int currentTile = 0;
             int currentGrayscalePixel = 0;
             int row = 0, column = 0;
 
 
-            // Convert image to grayscale
-            int padding = ((int)image.imageWidthPixels * 3) % 4;
+            // Convert image to grayscale. Average the three bytes (R, G, B) for each pixel
+
+            int padding = ((int)image.imageWidthPixels * 3) % 4; // Rows are padded with '0's to make the row count divisible by 4
             if( padding != 0)
             {
                 padding = 4 - padding;
             }
 
+            // Grayscale conversion
             currentGrayscalePixel = 0;
-
             for (row = 0; row < (int)image.imageHeightPixels; row++)
             {
                 for (column = 0; column < (int)image.imageWidthPixels; column++)
@@ -314,7 +359,7 @@ namespace EtchSketch_UI
             }
 
 
-            // Crop image to eliminate stray pixels
+            // Crop image to make image dimensions in pixels divisible by the tile size in pixels
             int numStrayHorzPixels = (int)image.imageWidthPixels % ((int)image.pixelsPerMMHorizontal * tileSizeMM);
             int numStrayVertPixels = (int)image.imageHeightPixels % ((int)image.pixelsPerMMVertical * tileSizeMM);
             if (numStrayHorzPixels > 0 || numStrayVertPixels > 0)
@@ -352,7 +397,7 @@ namespace EtchSketch_UI
             image.imageWidthTiles = image.imageWidthPixels / image.pixelsPerMMHorizontal / (ulong)tileSizeMM;
             image.imageHeightTiles = image.imageHeightPixels / image.pixelsPerMMVertical / (ulong)tileSizeMM;
 
-            // Create command byte array
+            // Create draw byte array
             image.commandBytes = new byte[image.imageHeightTiles * image.imageWidthTiles];
             currentTile = 0;
             int currentTileValue = 0;
@@ -437,36 +482,58 @@ namespace EtchSketch_UI
             InitializeComponent();
         }
 
-        private void label1_Click(object sender, EventArgs e)
-        {
-
-        }
 
         private void button_startStop_Click(object sender, EventArgs e)
         {
-            if(currentPrinterState == printerState.idle)
-            {
-                currentPrinterState = printerState.printInProgress;
+            // Start print
+            if(currentPrinterState == printerState.idle && !drawQueue.IsEmpty)
+            {                
+                currentPrinterState = printerState.sendDrawingBytes;
                 button_startStop.Text = "Stop Print";
                 richTextBox_debug.Clear();
+                textBox_Status.Text = "Uploading print job";
+
                 // Send start print command to Arduino
                 if (serialPort1.IsOpen)
                 {
-                    dataByte = 0;
+                    // Determine resolution of print
+                    if(comboBox_Resolution.Text == "Low")
+                    {
+                        dataByte = 0;
+                    }
+                    else if(comboBox_Resolution.Text == "Medium")
+                    {
+                        dataByte = 1;
+
+                    }
+                    else if (comboBox_Resolution.Text == "High")
+                    {
+                        dataByte = 2;
+
+                    }
                     serialPort1.Write(new byte[3] { startByte, startPrintCommand, dataByte }, 0, 3);
                 }
+                
             }
+            // Stop print. Can only stop print once all drawing bytes have been sent to the Arduino.
             else if(currentPrinterState == printerState.printInProgress || currentPrinterState == printerState.printPaused)
             {
                 currentPrinterState = printerState.idle;
                 button_startStop.Text = "Start Print";
                 button_pauseResume.Text = "Pause Print";
+                textBox_Status.Text = "Print Stopped";
                 // Send stop print command to Arduino
                 if (serialPort1.IsOpen)
                 {
                     dataByte = 0;
                     serialPort1.Write(new byte[2] { startByte, stopPrintCommand }, 0, 2);
                 }
+            }
+
+            // Error : user has not uploaded their image
+            else if (currentPrinterState == printerState.idle && drawQueue.IsEmpty)
+            {
+                textBox_Status.Text = "Please upload your image";
             }
 
             
