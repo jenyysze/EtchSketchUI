@@ -201,11 +201,9 @@ namespace EtchSketch_UI
                 }
 
             }
-
-            
+                        
             textBox_Status.Text = "Image processing complete";
-
-
+            
             ////Print out the image
             //int currentTile = 0;
             //foreach (byte currentByte in currentImage.commandBytes)
@@ -295,6 +293,8 @@ namespace EtchSketch_UI
                 // Drawing byte transfer is complete
                 if (drawQueue.IsEmpty)
                 {
+                    // Send print complete command
+                    serialPort1.Write(new byte[] { startByte, stopPrintCommand }, 0, 2);
                     currentPrinterState = printerState.printInProgress;
                     textBox_Status.Text = "Printing";
                 }
@@ -528,7 +528,7 @@ namespace EtchSketch_UI
                         dataByte = 2;
 
                     }
-                    serialPort1.Write(new byte[3] { startByte, startPrintCommand, dataByte }, 0, 3);
+                    serialPort1.Write(new byte[] { startByte, startPrintCommand, dataByte }, 0, 3);
                 }
                 
             }
