@@ -22,7 +22,7 @@ namespace EtchSketch_UI
 
         image24BitBMP currentImage;
         string imageLocation = @"C:\Users\jen-s\Documents\MECH 4\MECH 423\4.FINAL PROJECT\Sample_Images\grayscalePallet.bmp";
-        enum printerState { printInProgress, printPaused, idle, sendDrawingBytes };
+        enum printerState { printInProgress, printPaused, idle, sendDrawingBytes, readyForNextDrawingByte };
 
         printerState currentPrinterState = printerState.idle;
 
@@ -106,17 +106,22 @@ namespace EtchSketch_UI
                 richTextBox_debug.AppendText( queueData + " ");
 
                 // Incoming command from Arduino
-                if(queueData == 255 && currentPrinterState == printerState.printInProgress)
+                if(queueData == 255)
                 {
-                    // Print has been complete, change to idle state
                     cqueue.TryDequeue(out queueData);
-                    if(queueData == 5)
+                    // Print has been complete, change to idle state
+                    if (queueData == 5 && currentPrinterState == printerState.printInProgress)
                     {
                         currentPrinterState = printerState.idle;
                         button_startStop.Text = "Start Print";
                         button_pauseResume.Text = "Pause Print";
 
                         textBox_Status.Text = "Print Complete";
+                    }
+                    // Arduino is ready for the next byte
+                    else if(queueData == 6 && currentPrinterState == printerState.sendDrawingBytes)
+                    {
+                        currentPrinterState = printerState.readyForNextDrawingByte;
                     }
                 }
 
@@ -283,13 +288,17 @@ namespace EtchSketch_UI
         private void timerDraw_Tick(object sender, EventArgs e)
         {
             // Send tile bytes to the Arduino
-            if(currentPrinterState == printerState.sendDrawingBytes)
+            if(currentPrinterState == printerState.readyForNextDrawingByte)
             {
                 drawQueue.TryDequeue(out dataByte);
                 if (serialPort1.IsOpen)
                 {
                     serialPort1.Write(new byte[] { startByte, drawCommand, dataByte }, 0, 3);
                 }
+
+                // Wait until Arduino is ready for the next byte
+                currentPrinterState = printerState.sendDrawingBytes;
+
                 // Drawing byte transfer is complete
                 if (drawQueue.IsEmpty)
                 {
@@ -298,6 +307,7 @@ namespace EtchSketch_UI
                     currentPrinterState = printerState.printInProgress;
                     textBox_Status.Text = "Printing";
                 }
+
             }
         }
 
